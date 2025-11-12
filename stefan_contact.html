@@ -127,6 +127,9 @@
             background: transparent;
             color: #374151;
             padding: 0.5rem;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
         }
 
         .btn-ghost:hover {
@@ -235,6 +238,7 @@
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             max-height: 90vh;
             overflow-y: auto;
+            position: relative;
         }
 
         .modal-header {
@@ -324,6 +328,45 @@
             color: #6b7280;
         }
 
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            z-index: 2000;
+            max-width: 300px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+        }
+
+        .notification.out {
+            animation: slideOut 0.3s ease;
+        }
+
         @media (max-width: 640px) {
             .card {
                 border-radius: 1rem;
@@ -365,7 +408,7 @@
                         <span>📥</span>
                         Fiche contact
                     </a>
-                    <button class="btn btn-secondary" onclick="openModal()">
+                    <button id="exchangeBtn" class="btn btn-secondary">
                         <span>☁️</span>
                         Échanger
                     </button>
@@ -373,7 +416,7 @@
 
                 <!-- Share Button -->
                 <div class="share-btn">
-                    <button class="btn btn-ghost" onclick="shareProfile()">
+                    <button id="shareBtn" class="btn btn-ghost">
                         <span>📤</span>
                         Partager
                     </button>
@@ -438,41 +481,41 @@
     <!-- Modal -->
     <div id="exchangeModal" class="modal">
         <div class="modal-content">
-            <button class="btn-close" onclick="closeModal()">✕</button>
+            <button id="closeBtn" class="btn-close">✕</button>
             <div class="modal-header">
                 <h2 class="modal-title">Échanger avec Stéfan Dewez</h2>
             </div>
 
-            <form id="exchangeForm" onsubmit="submitForm(event)">
+            <form id="exchangeForm">
                 <div class="form-row">
                     <div class="form-group">
                         <label for="firstName">Prénom *</label>
-                        <input type="text" id="firstName" name="firstName" placeholder="Votre prénom" required>
+                        <input type="text" id="firstName" placeholder="Votre prénom" required>
                     </div>
                     <div class="form-group">
                         <label for="lastName">Nom *</label>
-                        <input type="text" id="lastName" name="lastName" placeholder="Votre nom" required>
+                        <input type="text" id="lastName" placeholder="Votre nom" required>
                     </div>
                 </div>
 
                 <div class="form-group">
                     <label for="company">Société</label>
-                    <input type="text" id="company" name="company" placeholder="Votre entreprise">
+                    <input type="text" id="company" placeholder="Votre entreprise">
                 </div>
 
                 <div class="form-group">
                     <label for="position">Titre du poste</label>
-                    <input type="text" id="position" name="position" placeholder="Votre poste">
+                    <input type="text" id="position" placeholder="Votre poste">
                 </div>
 
                 <div class="form-group">
                     <label for="email">E-mail *</label>
-                    <input type="email" id="email" name="email" placeholder="votre@email.com" required>
+                    <input type="email" id="email" placeholder="votre@email.com" required>
                 </div>
 
                 <div class="form-group">
                     <label for="phone">Numéro de téléphone</label>
-                    <input type="tel" id="phone" name="phone" placeholder="+33 6 XX XX XX XX">
+                    <input type="tel" id="phone" placeholder="+33 6 XX XX XX XX">
                 </div>
 
                 <div class="form-notice">
@@ -487,17 +530,34 @@
     </div>
 
     <script>
-        function openModal() {
-            document.getElementById('exchangeModal').classList.add('active');
-        }
+        // Éléments DOM
+        const modal = document.getElementById('exchangeModal');
+        const exchangeBtn = document.getElementById('exchangeBtn');
+        const shareBtn = document.getElementById('shareBtn');
+        const closeBtn = document.getElementById('closeBtn');
+        const form = document.getElementById('exchangeForm');
 
-        function closeModal() {
-            document.getElementById('exchangeModal').classList.remove('active');
-        }
+        // Ouvrir le modal
+        exchangeBtn.addEventListener('click', function() {
+            modal.classList.add('active');
+        });
 
-        function submitForm(event) {
+        // Fermer le modal
+        closeBtn.addEventListener('click', function() {
+            modal.classList.remove('active');
+        });
+
+        // Fermer le modal en cliquant en dehors
+        modal.addEventListener('click', function(event) {
+            if (event.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+
+        // Soumettre le formulaire
+        form.addEventListener('submit', function(event) {
             event.preventDefault();
-            
+
             const firstName = document.getElementById('firstName').value;
             const lastName = document.getElementById('lastName').value;
             const company = document.getElementById('company').value;
@@ -525,92 +585,48 @@ ${firstName} ${lastName}`;
             // Créer le lien mailto
             const mailtoLink = `mailto:stefan.dewez@crisisoft.com?subject=Demande d'échange - ${firstName} ${lastName}&body=${encodeURIComponent(emailBody)}`;
 
-            // Afficher une notification de succès
-            showNotification('Merci !', 'Votre client email va s'ouvrir avec le message pré-rempli.');
+            // Afficher notification
+            showNotification('Merci !', 'Votre client email va s\'ouvrir avec le message pré-rempli.');
 
             // Ouvrir le client email
             window.location.href = mailtoLink;
 
-            // Fermer le modal et réinitialiser le formulaire
+            // Fermer le modal et réinitialiser
             setTimeout(() => {
-                closeModal();
-                document.getElementById('exchangeForm').reset();
+                modal.classList.remove('active');
+                form.reset();
             }, 500);
-        }
+        });
 
-        function shareProfile() {
+        // Bouton Partager
+        shareBtn.addEventListener('click', function() {
             if (navigator.share) {
                 navigator.share({
                     title: 'Stéfan Dewez - Expert Métier',
                     text: 'Découvrez mon profil professionnel',
                     url: window.location.href
-                }).catch(err => console.log('Erreur lors du partage:', err));
+                }).catch(err => console.log('Erreur partage:', err));
             } else {
-                alert('La fonction de partage n'est pas disponible sur votre navigateur.');
+                showNotification('Partage', 'Copiez l\'URL et partagez-la manuellement.');
             }
-        }
+        });
 
+        // Fonction notification
         function showNotification(title, description) {
             const notification = document.createElement('div');
-            notification.style.cssText = `
-                position: fixed;
-                bottom: 20px;
-                right: 20px;
-                background: white;
-                padding: 1rem;
-                border-radius: 0.5rem;
-                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-                z-index: 2000;
-                max-width: 300px;
-                animation: slideIn 0.3s ease;
-            `;
-            
+            notification.className = 'notification';
             notification.innerHTML = `
                 <div style="font-weight: 600; color: #059669; margin-bottom: 0.25rem;">✓ ${title}</div>
                 <div style="font-size: 0.875rem; color: #6b7280;">${description}</div>
             `;
-            
+
             document.body.appendChild(notification);
-            
+
             setTimeout(() => {
-                notification.style.animation = 'slideOut 0.3s ease';
+                notification.classList.add('out');
                 setTimeout(() => notification.remove(), 300);
             }, 4000);
         }
-
-        // Fermer le modal en cliquant en dehors
-        document.getElementById('exchangeModal').addEventListener('click', function(event) {
-            if (event.target === this) {
-                closeModal();
-            }
-        });
-
-        // Ajouter les animations CSS
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes slideIn {
-                from {
-                    transform: translateX(400px);
-                    opacity: 0;
-                }
-                to {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-            }
-            
-            @keyframes slideOut {
-                from {
-                    transform: translateX(0);
-                    opacity: 1;
-                }
-                to {
-                    transform: translateX(400px);
-                    opacity: 0;
-                }
-            }
-        `;
-        document.head.appendChild(style);
     </script>
 </body>
 </html>
