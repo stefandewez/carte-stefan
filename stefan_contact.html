@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Carte de Contact - Stéfan Dewez</title>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/index.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -317,6 +318,11 @@
             background-color: #1d4ed8;
         }
 
+        .btn-submit:disabled {
+            background-color: #9ca3af;
+            cursor: not-allowed;
+        }
+
         .btn-close {
             position: absolute;
             top: 1rem;
@@ -339,6 +345,14 @@
             z-index: 2000;
             max-width: 300px;
             animation: slideIn 0.3s ease;
+        }
+
+        .notification.success {
+            border-left: 4px solid #10b981;
+        }
+
+        .notification.error {
+            border-left: 4px solid #ef4444;
         }
 
         @keyframes slideIn {
@@ -523,19 +537,23 @@
                 </div>
 
                 <div class="modal-footer">
-                    <button type="submit" class="btn-submit">Envoyer</button>
+                    <button type="submit" class="btn-submit" id="submitBtn">Envoyer</button>
                 </div>
             </form>
         </div>
     </div>
 
     <script>
+        // Initialiser EmailJS
+        emailjs.init('P3OBbyUSs-zEd3KW');
+
         // Éléments DOM
         const modal = document.getElementById('exchangeModal');
         const exchangeBtn = document.getElementById('exchangeBtn');
         const shareBtn = document.getElementById('shareBtn');
         const closeBtn = document.getElementById('closeBtn');
         const form = document.getElementById('exchangeForm');
+        const submitBtn = document.getElementById('submitBtn');
 
         // Ouvrir le modal
         exchangeBtn.addEventListener('click', function() {
@@ -554,7 +572,7 @@
             }
         });
 
-        // Soumettre le formulaire
+        // Soumettre le formulaire avec EmailJS
         form.addEventListener('submit', function(event) {
             event.preventDefault();
 
@@ -565,8 +583,19 @@
             const email = document.getElementById('email').value;
             const phone = document.getElementById('phone').value;
 
-            // Créer le corps du message
-            const emailBody = `Bonjour,
+            // Désactiver le bouton pendant l'envoi
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Envoi en cours...';
+
+            // Préparer les paramètres pour EmailJS
+            const templateParams = {
+                to_email: 'stefan.dewez@crisisoft.com',
+                from_name: firstName + ' ' + lastName,
+                from_email: email,
+                company: company || 'Non spécifiée',
+                position: position || 'Non spécifiée',
+                phone: phone || 'Non spécifié',
+                message: `Bonjour,
 
 J'aimerais entrer en contact avec vous.
 
@@ -574,28 +603,34 @@ Voici mes informations :
 
 Prénom : ${firstName}
 Nom : ${lastName}
-Société : ${company}
-Titre du poste : ${position}
+Société : ${company || 'Non spécifiée'}
+Titre du poste : ${position || 'Non spécifié'}
 Email : ${email}
-Téléphone : ${phone}
+Téléphone : ${phone || 'Non spécifié'}
 
 Cordialement,
-${firstName} ${lastName}`;
+${firstName} ${lastName}`
+            };
 
-            // Créer le lien mailto
-            const mailtoLink = `mailto:stefan.dewez@crisisoft.com?subject=Demande d'échange - ${firstName} ${lastName}&body=${encodeURIComponent(emailBody)}`;
-
-            // Afficher notification
-            showNotification('Merci !', 'Votre client email va s\'ouvrir avec le message pré-rempli.');
-
-            // Ouvrir le client email
-            window.location.href = mailtoLink;
-
-            // Fermer le modal et réinitialiser
-            setTimeout(() => {
-                modal.classList.remove('active');
-                form.reset();
-            }, 500);
+            // Envoyer l'email via EmailJS
+            emailjs.send('service_4r6xyq9', 'template_default', templateParams)
+                .then(function(response) {
+                    console.log('Email envoyé avec succès!', response.status, response.text);
+                    showNotification('Merci !', 'Votre message a été envoyé avec succès.', 'success');
+                    
+                    // Fermer le modal et réinitialiser le formulaire
+                    setTimeout(() => {
+                        modal.classList.remove('active');
+                        form.reset();
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = 'Envoyer';
+                    }, 1500);
+                }, function(error) {
+                    console.error('Erreur lors de l'envoi:', error);
+                    showNotification('Erreur', 'Une erreur s'est produite lors de l'envoi. Veuillez réessayer.', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Envoyer';
+                });
         });
 
         // Bouton Partager
@@ -607,16 +642,18 @@ ${firstName} ${lastName}`;
                     url: window.location.href
                 }).catch(err => console.log('Erreur partage:', err));
             } else {
-                showNotification('Partage', 'Copiez l\'URL et partagez-la manuellement.');
+                showNotification('Partage', 'Copiez l'URL et partagez-la manuellement.', 'success');
             }
         });
 
         // Fonction notification
-        function showNotification(title, description) {
+        function showNotification(title, description, type = 'success') {
             const notification = document.createElement('div');
-            notification.className = 'notification';
+            notification.className = 'notification ' + type;
             notification.innerHTML = `
-                <div style="font-weight: 600; color: #059669; margin-bottom: 0.25rem;">✓ ${title}</div>
+                <div style="font-weight: 600; color: ${type === 'success' ? '#059669' : '#dc2626'}; margin-bottom: 0.25rem;">
+                    ${type === 'success' ? '✓' : '✕'} ${title}
+                </div>
                 <div style="font-size: 0.875rem; color: #6b7280;">${description}</div>
             `;
 
